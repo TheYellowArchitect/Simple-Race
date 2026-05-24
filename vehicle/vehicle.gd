@@ -161,8 +161,10 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 
 	if not is_grounded:
 		linear_damp = 0.0
-		apply_torque(-global_basis.x * air_pitch_torque * mass)
-		apply_central_force(Vector3.DOWN * extra_gravity * mass)
+		var pitch_force: Vector3 = -global_basis.x * air_pitch_torque * mass
+		apply_torque(pitch_force)
+		var extra_gravity_force: Vector3 = Vector3.DOWN * extra_gravity * mass
+		apply_central_force(extra_gravity_force)
 	else:
 		linear_damp = 0.1
 	
