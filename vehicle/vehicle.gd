@@ -108,7 +108,7 @@ var _registered_wall_collisions: Array[int]
 var _pre_collision_velocity: Vector3 = Vector3.ZERO
 signal entered_major_wall_collision(impact_velocity: float)
 signal exited_wall_collision()
-signal entered_minor_wall_collision()
+signal entered_minor_wall_collision(impact_velocity: float)
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	is_grounded = false
 	var max_impact := 0.0
@@ -142,7 +142,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 				if (impact_velocity > 0.1):
 					entered_minor_wall_collision.emit(impact_velocity)
 
-	var exited_ids: Array = []
+	var exited_ids: Array[int] = []
 	for registered_id: int in _registered_wall_collisions:
 		if not current_contact_ids.has(registered_id):
 			exited_ids.append(registered_id)
