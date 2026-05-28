@@ -1,0 +1,10 @@
+[gd_resource type="ShaderMaterial" format=3 uid="uid://dq3l50ihy3hyb"]
+
+[ext_resource type="Shader" uid="uid://cd7syw1vyxvyy" path="res://skidmark/skidmark_shader_code.gdshader" id="1_tqxjy"]
+[ext_resource type="Texture2D" uid="uid://b8cg36nbhm2s8" path="res://skidmark/rubber-texture-256.png" id="2_jvhau"]
+
+[resource]
+render_priority = 3
+shader = ExtResource("1_tqxjy")
+shader_parameter/albedo_texture = ExtResource("2_jvhau")
+shader_parameter/uv_scale = 27.000001281801477
