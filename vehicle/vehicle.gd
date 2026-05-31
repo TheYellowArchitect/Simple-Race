@@ -29,6 +29,7 @@ extends RigidBody3D
 
 @export_category("Debug")
 @export var show_debug := false
+@export var skidmark_maker: SkidmarkMesh
 
 @onready var car_mass_share := mass / wheels.size()
 var is_drifting := false
@@ -44,7 +45,7 @@ func _physics_process(delta: float) -> void:
 	var brake_input := Input.get_action_strength("brake")
 	brake_light_material.albedo_color = Color(sign(brake_input) + 0.2, 0, 0)
 	var steer_input := Input.get_axis("steer_right", "steer_left") * tire_turn_speed
-	
+
 	car_speed_kph = -global_basis.z.dot(linear_velocity) * 3.6
 	for wheel in wheels:
 		## Rotate wheels
@@ -53,20 +54,20 @@ func _physics_process(delta: float) -> void:
 			var steer_ratio := max_turn_curve.sample_baked(abs(car_speed_kph))
 			if steer_input:
 				wheel.rotation.y = clampf(wheel.rotation.y + steer_input * delta,
-				deg_to_rad(-tire_max_turn_degrees * steer_ratio), 
+				deg_to_rad(-tire_max_turn_degrees * steer_ratio),
 				deg_to_rad(tire_max_turn_degrees) * steer_ratio)
 			else:
 				wheel.rotation.y = move_toward(wheel.rotation.y, 0, tire_turn_speed * delta)
-		
+
 		if not is_grounded: continue
-		
+
 		# Vehicle Forces
 		var wheel_center := wheel.global_position
 		var force_pos := wheel_center - global_position
 		var wheel_forward_dir := -wheel.global_basis.z
 		var tire_velocity := _get_point_velocity(wheel_center)
 		var wheel_forward_velocity := wheel_forward_dir.dot(tire_velocity)
-		
+
 		# Acceleration
 		var is_powered_wheel := to_local(wheel.global_position).z > 0
 		if is_powered_wheel and throttle_input:
@@ -75,23 +76,28 @@ func _physics_process(delta: float) -> void:
 			if linear_velocity.y < -1: engine_force *= downhill_multiplier
 			apply_force(engine_force, force_pos)
 			if show_debug: DebugDraw3D.draw_arrow_ray(global_position + force_pos, engine_force, 0.01, Color.RED, 0.3, true)
-		
+
 		# Grippy steering
 		var wheel_sideways_dir := wheel.global_basis.x
 		var wheel_sideways_velocity := wheel_sideways_dir.dot(tire_velocity)
-		
+
 		var slip_angle = atan2(wheel_sideways_velocity, wheel_forward_velocity)
 		var slip_angle_norm = remap(abs(slip_angle), 0, PI/2, 0, 1)
-		
+
 		if brake_input > 0: is_drifting = true
 		if brake_input == 0 and slip_angle_norm < 0.05: is_drifting = false
-		
+
 		var grip_factor := grip_front if is_front_wheel else grip_rear
-		if is_drifting: grip_factor = grip_drift_front if is_front_wheel else grip_drift_rear
+		if is_drifting:
+			if is_front_wheel:
+				grip_factor = grip_drift_front
+			else:
+				grip_factor = grip_drift_rear
+				if skidmark_maker: skidmark_maker._try_make_skidmark(wheel, wheel_forward_dir, slip_angle_norm, car_speed_kph)
 		var grip_force := -wheel_sideways_velocity * wheel_sideways_dir * car_mass_share * grip_power * grip_factor
 		apply_force(grip_force, force_pos)
 		if show_debug: DebugDraw3D.draw_arrow_ray(global_position + force_pos, grip_force, 0.01, Color.YELLOW, 0.3, true)
-		
+
 		# Decelartion
 		var force_basis := wheel.global_basis.z * car_mass_share
 		var drag := drag_curve.sample_baked(abs(car_speed_kph))
@@ -108,15 +114,15 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	# Loop through all current collisions
 	for i in state.get_contact_count():
 		var normal := state.get_contact_local_normal(i)
-		if normal.y > 0.5: 
+		if normal.y > 0.5:
 			is_grounded = true
-			
+
 		var is_wall: bool = abs(normal.y) < 0.3
 		if is_wall:
 			hit_wall = true
 			var impact_velocity: float = abs(_prev_linear_velocity.dot(normal))
 			if impact_velocity > max_impact: max_impact = impact_velocity
-	
+
 	if hit_wall and max_impact > 0.5:
 		var car_forward_dir := -global_basis.z
 		var current_forward_speed := state.linear_velocity.dot(car_forward_dir)
@@ -126,7 +132,7 @@ func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 		state.linear_velocity -= car_forward_dir * actual_reduction
 		state.angular_velocity *= wall_spin_damping
 	_prev_linear_velocity = state.linear_velocity
-	
+
 	if not is_grounded:
 		linear_damp = 0.0
 		var pitch_force := -global_basis.x * air_pitch_torque * mass
