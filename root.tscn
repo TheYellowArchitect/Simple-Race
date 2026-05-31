@@ -15,7 +15,6 @@
 [ext_resource type="Script" uid="uid://f1f283ernlj5" path="res://skidmark/skidmark_mesh.gd" id="14_50g4q"]
 [ext_resource type="Script" uid="uid://bnsn1ffptdd2e" path="res://vehicle/vehicle.gd" id="14_qt76e"]
 [ext_resource type="Script" uid="uid://cg4aquldxc08h" path="res://track/boost.gd" id="14_sq7yr"]
-[ext_resource type="Material" uid="uid://dq3l50ihy3hyb" path="res://skidmark/skidmark_material.tres" id="15_3dlgs"]
 [ext_resource type="Script" uid="uid://bxhf2tq0sacec" path="res://vehicle/chase_camera.gd" id="20_3dlgs"]
 [ext_resource type="PackedScene" uid="uid://deheq0cg1kiex" path="res://track/d14.glb" id="20_vte5o"]
 [ext_resource type="Script" uid="uid://dm310fn6aws2e" path="res://track/sector.gd" id="21_vte5o"]
@@ -320,7 +319,7 @@ texture = ExtResource("6_vte5o")
 expand_mode = 3
 stretch_mode = 5
 
-[node name="Car" type="RigidBody3D" parent="." unique_id=1491395218 node_paths=PackedStringArray("wheels", "brake_light_mesh")]
+[node name="Car" type="RigidBody3D" parent="." unique_id=1491395218 node_paths=PackedStringArray("wheels", "brake_light_mesh", "skidmark_maker")]
 transform = Transform3D(-1.07284414e-07, 0, -1, 0, 1, 0, 1, 0, -1.07284414e-07, 6, 0.25000787, 6.4370647e-07)
 mass = 50.0
 physics_material_override = SubResource("PhysicsMaterial_r3r3k")
@@ -333,7 +332,7 @@ brake_light_mesh = NodePath("CarMesh/Node_0/Assembly~1/3DGeom~6")
 brake_light_material = ExtResource("9_blcw0")
 max_turn_curve = SubResource("Curve_ub8w1")
 drag_curve = SubResource("Curve_eji0w")
-skid_min_yaw_rate = 0.6
+skidmark_maker = NodePath("SkidmarkMesh")
 
 [node name="CarMesh" parent="Car" unique_id=2132534011 instance=ExtResource("5_blcw0")]
 transform = Transform3D(1.9470718e-07, 0, -1, 0, 1, 0, 1, 0, 1.9470718e-07, -1, -0.249, -2)
@@ -375,15 +374,9 @@ mesh = SubResource("BoxMesh_blcw0")
 process_physics_priority = -1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.75, 0, 1.25)
 
-[node name="Center" type="Marker3D" parent="Car/Tires/RL" unique_id=1070844402]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.15, 0, 0.06)
-
 [node name="RR" type="Node3D" parent="Car/Tires" unique_id=1745808139]
 process_physics_priority = -1
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.75, 0, 1.25)
-
-[node name="Center" type="Marker3D" parent="Car/Tires/RR" unique_id=1645271212]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.15, 0, 0.06)
 
 [node name="CameraPivot" type="Node3D" parent="Car" unique_id=864264323]
 
@@ -399,7 +392,6 @@ script = ExtResource("13_blcw0")
 
 [node name="SkidmarkMesh" type="Node3D" parent="Car" unique_id=1840985134]
 script = ExtResource("14_50g4q")
-skidmark_material = ExtResource("15_3dlgs")
 metadata/_custom_type_script = "uid://f1f283ernlj5"
 
 [node name="MeshInstance3D" type="MeshInstance3D" parent="Car/SkidmarkMesh" unique_id=1392670941]

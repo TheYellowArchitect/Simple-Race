@@ -27,19 +27,11 @@ extends RigidBody3D
 @export var wall_penalty_multiplier := 0.8
 @export var wall_spin_damping := 0.5
 
-@export_group("Skidmarks")
-## How far inboard (toward the car centerline) to pull each mark, since the
-## wheel markers sit slightly outboard of the tires.
-@export var skid_inward_offset := 0.05
-## Minimum yaw rate (rad/s) before marks are laid. Stops marks when the car
-## isn't rotating/sliding, even while braking in a straight line.
-@export var skid_min_yaw_rate := 0.2
-
 @export_category("Debug")
 @export var show_debug := false
+@export var skidmark_maker: SkidmarkMesh
 
 @onready var car_mass_share := mass / wheels.size()
-@onready var skidmark_maker: SkidmarkMesh = get_node("SkidmarkMesh")
 var is_drifting := false
 var is_grounded := false
 var car_speed_kph := 0.0
@@ -101,10 +93,7 @@ func _physics_process(delta: float) -> void:
 				grip_factor = grip_drift_front
 			else:
 				grip_factor = grip_drift_rear
-				if (car_speed_kph > 0 and brake_input > 0 and absf(angular_velocity.y) > skid_min_yaw_rate):
-					#get_child() every physics tick is heavy but unnoticable in this demo.
-					#so this is preferable to making wheel.gd just to cache the below variable, to prevent bloat
-					_try_make_skidmark(wheel.get_child(0), wheel_forward_dir, slip_angle_norm)
+				if skidmark_maker: skidmark_maker._try_make_skidmark(wheel, wheel_forward_dir, slip_angle_norm, car_speed_kph)
 		var grip_force := -wheel_sideways_velocity * wheel_sideways_dir * car_mass_share * grip_power * grip_factor
 		apply_force(grip_force, force_pos)
 		if show_debug: DebugDraw3D.draw_arrow_ray(global_position + force_pos, grip_force, 0.01, Color.YELLOW, 0.3, true)
@@ -117,23 +106,6 @@ func _physics_process(delta: float) -> void:
 		var braking_force := force_basis * brake_power * brake_modifier * brake_input
 		apply_force(drag_force + braking_force, force_pos)
 		if show_debug: DebugDraw3D.draw_arrow_ray(global_position + force_pos, drag_force + braking_force, 0.01, Color.ORANGE, 0.3, true)
-
-## Arguably, this entire function could go inside SkidmarkMaker
-func _try_make_skidmark(wheel: Node3D, wheel_forward_dir: Vector3, slip_angle_norm: float) -> void:
-	var space_state = get_world_3d().direct_space_state
-	var up := global_basis.y
-	var query = PhysicsRayQueryParameters3D.create(
-		wheel.global_position + up * 0.2,
-		wheel.global_position - up * 0.5
-	)
-	query.exclude = [self, wheel, wheel.get_parent()]
-	var result = space_state.intersect_ray(query)
-	if result:
-		var hit_pos: Vector3 = result.position
-		# Pull the mark inboard toward the car centerline (markers sit outboard of the tires).
-		hit_pos -= global_basis.x * signf(to_local(hit_pos).x) * skid_inward_offset
-		# Key each trail by the wheel marker's id so the two rear wheels stay separate.
-		skidmark_maker.try_stamp(wheel.get_instance_id(), hit_pos, wheel_forward_dir, result.normal, car_speed_kph, slip_angle_norm)
 
 func _integrate_forces(state: PhysicsDirectBodyState3D) -> void:
 	is_grounded = false
